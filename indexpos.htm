@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Punto de Venta 💳💵</title>
+    <style>
+        body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    margin: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+h1, h2 {
+    color: #333;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+.main-content {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.products-section, .sale-section {
+    flex: 1;
+    background-color: #fafafa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 15px;
+}
+
+.product-item {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: #fff;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.product-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.product-item h4 { margin: 5px 0; font-size: 1em; }
+.product-item p { margin: 5px 0; font-weight: bold; color: #007bff; }
+
+.seller-selection, .payment-section { margin-bottom: 15px; }
+#seller, #payment-method, #cash-received {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Importante para que el padding no desborde */
+}
+
+.cash-details { margin-top: 10px; }
+.cart-list { list-style: none; padding: 0; min-height: 150px; }
+.cart-item { display: flex; justify-content: space-between; padding: 8px 5px; border-bottom: 1px solid #eee; }
+.total-section { text-align: right; margin-top: 15px; font-size: 1.2em; font-weight: bold; }
+hr { border: none; border-top: 1px solid #eee; margin: 15px 0; }
+
+#complete-sale, #show-sales-report {
+    width: 100%;
+    padding: 12px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1em;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#complete-sale { background-color: #28a745; }
+#complete-sale:hover { background-color: #218838; }
+#show-sales-report { background-color: #007bff; }
+#show-sales-report:hover { background-color: #0056b3; }
+
+/* --- Estilos del Modal --- */
+.modal {
+    display: none; /* Oculto por defecto */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5); /* Fondo semitransparente */
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 900px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.close-button:hover { color: black; }
+
+.filter-container { margin-bottom: 20px; }
+.table-wrapper { max-height: 60vh; overflow-y: auto; }
+#sales-table { width: 100%; border-collapse: collapse; }
+#sales-table th, #sales-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+#sales-table th { background-color: #f2f2f2; position: sticky; top: 0; }
+#sales-table tbody tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Punto de Venta 🛒</h1>
+        <div class="main-content">
+            <div class="products-section">
+                <h2>🛍️ Productos 🛍️</h2>
+                <div id="product-list" class="product-grid"></div>
+            </div>
+            <div class="sale-section">
+                <h2>Venta Actual</h2>
+                <div class="seller-selection">
+                    <label for="seller">👨‍💻 Vendedor:</label>
+                    <select id="seller"></select>
+                </div>
+                <ul id="cart" class="cart-list"></ul>
+                <div class="total-section">
+                    <h3>Total: $<span id="total">0.00</span></h3>
+                </div>
+                <hr>
+                <div class="payment-section">
+                    <label for="payment-method">Medio de Pago:</label>
+                    <select id="payment-method">
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="tarjeta">💳 Tarjeta</option>
+                        <option value="cheque">🗞️ Cheque</option>
+                    </select>
+                    <div id="cash-payment-details" class="cash-details">
+                        <label for="cash-received">Dinero Recibido:</label>
+                        <input type="number" id="cash-received" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+                <button id="complete-sale">📦 Completar Venta 📦</button>
+            </div>
+        </div>
+        <button id="show-sales-report">Ver Reporte de Ventas</button>
+    </div>
+
+    <!-- Modal para el Reporte de Ventas -->
+    <div id="sales-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Reporte de Ventas</h2>
+            <div class="filter-container">
+                <label for="seller-filter">Filtrar por Vendedor:</label>
+                <select id="seller-filter"></select>
+            </div>
+            <div class="table-wrapper">
+                <table id="sales-table">
+                    <thead>
+                        <tr>
+                            <th>ID Venta</th>
+                            <th>Vendedor</th>
+                            <th>Total</th>
+                            <th>Método Pago</th>
+                            <th>Fecha y Hora</th>
+                            <th>Productos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Las filas de ventas se insertarán aquí -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+    // --- DATOS INICIALES ---
+    const data = {
+        "products": [
+          { "id": 1, "name": "Café Americano", "price": 2.50 },
+          { "id": 2, "name": "Latte", "price": 3.00 },
+          { "id": 3, "name": "Capuchino", "price": 3.25 },
+          { "id": 4, "name": "Té Verde", "price": 2.00 },
+          { "id": 5, "name": "Croissant", "price": 1.75 },
+          { "id": 6, "name": "Jugo Naranja", "price": 2.25 },
+          { "id": 7, "name": "Pastel de Chocolate", "price": 3.50 }
+        ],
+        "sellers": [
+          { "id": 1, "name": "Juan Pérez" },
+          { "id": 2, "name": "Ana Gómez" }
+        ]
+    };
+
+    let db;
+    let cart = [];
+
+    // --- 1. INICIALIZACIÓN DE INDEXEDDB ---
+    const request = indexedDB.open("posSystemDB_v2", 1); // v2 por el nuevo campo
+
+    request.onupgradeneeded = function(event) {
+        db = event.target.result;
+        const objectStore = db.createObjectStore("sales", { keyPath: "id", autoIncrement: true });
+        objectStore.createIndex("seller", "seller", { unique: false });
+    };
+
+    request.onsuccess = function(event) {
+        db = event.target.result;
+        loadInitialData();
+    };
+
+    request.onerror = function(event) { console.error("Error al abrir IndexedDB: ", event.target.errorCode); };
+
+    // --- 2. CARGA DE DATOS Y RENDERIZADO INICIAL ---
+    function loadInitialData() {
+        const productList = $('#product-list');
+        const sellerSelect = $('#seller');
+        const sellerFilter = $('#seller-filter');
+
+        // Cargar productos
+        data.products.forEach(product => {
+            productList.append(`
+                <div class="product-item" data-id="${product.id}" data-name="${product.name}" data-price="${product.price}">
+                    <h4>${product.name}</h4>
+                    <p>$${product.price.toFixed(2)}</p>
+                </div>
+            `);
+        });
+
+        // Cargar vendedores en ambos selects
+        sellerFilter.append('<option value="all">Todos los Vendedores</option>');
+        data.sellers.forEach(seller => {
+            const option = `<option value="${seller.name}">${seller.name}</option>`;
+            sellerSelect.append(option);
+            sellerFilter.append(option);
+        });
+        
+        renderCart();
+    }
+    
+    // --- 3. LÓGICA DEL CARRITO ---
+    $('#product-list').on('click', '.product-item', function() {
+        const product = {
+            id: $(this).data('id'),
+            name: $(this).data('name'),
+            price: $(this).data('price')
+        };
+        const existingProduct = cart.find(item => item.id === product.id);
+        if (existingProduct) {
+            existingProduct.quantity++;
+        } else {
+            cart.push({ ...product, quantity: 1 });
+        }
+        renderCart();
+    });
+
+    function renderCart() {
+        const cartList = $('#cart');
+        cartList.empty();
+        let total = 0;
+        if (cart.length === 0) {
+            cartList.html('<li>El carrito está vacío.</li>');
+        } else {
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                cartList.append(`
+                    <li class="cart-item">
+                        <span>${item.name} (x${item.quantity})</span>
+                        <span>$${itemTotal.toFixed(2)}</span>
+                    </li>
+                `);
+            });
+        }
+        $('#total').text(total.toFixed(2));
+    }
+
+    // --- 4. LÓGICA DE PAGO ---
+    $('#payment-method').on('change', function() {
+        if ($(this).val() === 'efectivo') {
+            $('#cash-payment-details').show();
+        } else {
+            $('#cash-payment-details').hide();
+        }
+    }).trigger('change'); // Llama al evento change al inicio para setear el estado inicial
+
+    $('#complete-sale').on('click', function() {
+        if (cart.length === 0) {
+            alert('El carrito está vacío.');
+            return;
+        }
+
+        const total = parseFloat($('#total').text());
+        const paymentMethod = $('#payment-method').val();
+
+        if (paymentMethod === 'efectivo') {
+            const cashReceived = parseFloat($('#cash-received').val());
+            if (isNaN(cashReceived) || cashReceived < total) {
+                alert('El dinero recibido es insuficiente o no es un valor válido.');
+                return;
+            }
+            const change = cashReceived - total;
+            alert(`Pago completado. Su vuelto es: $${change.toFixed(2)}`);
+        }
+        
+        // Si no es efectivo, o si el pago en efectivo fue válido, procede a guardar.
+        saveSale(paymentMethod, total);
+    });
+
+    function saveSale(paymentMethod, total) {
+        const sale = {
+            seller: $('#seller').val(),
+            products: cart,
+            total: total,
+            paymentMethod: paymentMethod,
+            date: new Date().toISOString()
+        };
+
+        const transaction = db.transaction(["sales"], "readwrite");
+        const objectStore = transaction.objectStore("sales");
+        const request = objectStore.add(sale);
+
+        request.onsuccess = function() {
+            alert('Venta guardada con éxito.');
+            cart = [];
+            renderCart();
+            $('#cash-received').val('');
+        };
+        request.onerror = function() { console.error("Error al guardar la venta."); };
+    }
+
+    // --- 5. LÓGICA DEL MODAL DE REPORTES ---
+    const modal = $('#sales-modal');
+
+    $('#show-sales-report').on('click', function() {
+        loadSales(); // Carga todas las ventas por defecto
+        modal.css('display', 'flex'); // Usamos flex para centrar
+    });
+
+    $('.close-button').on('click', () => modal.hide());
+
+    $(window).on('click', function(event) {
+        if ($(event.target).is(modal)) {
+            modal.hide();
+        }
+    });
+
+    $('#seller-filter').on('change', function() {
+        loadSales($(this).val());
+    });
+
+    function loadSales(filter = 'all') {
+        if (!db) return;
+
+        const transaction = db.transaction(["sales"], "readonly");
+        const objectStore = transaction.objectStore("sales");
+        const salesTableBody = $('#sales-table tbody');
+        salesTableBody.empty();
+
+        objectStore.openCursor(null, 'prev').onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                const sale = cursor.value;
+                // Aplicar filtro
+                if (filter === 'all' || sale.seller === filter) {
+                    const productsString = sale.products.map(p => `${p.name} (x${p.quantity})`).join(', ');
+                    salesTableBody.append(`
+                        <tr>
+                            <td>${sale.id}</td>
+                            <td>${sale.seller}</td>
+                            <td>$${sale.total.toFixed(2)}</td>
+                            <td>${sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</td>
+                            <td>${new Date(sale.date).toLocaleString()}</td>
+                            <td>${productsString}</td>
+                        </tr>
+                    `);
+                }
+                cursor.continue();
+            }
+        };
+    }
+});
+    </script>
+</body>
+</html>
